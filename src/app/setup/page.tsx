@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireOperatorPage } from "@/lib/setup/operator";
 import { prisma } from "@/lib/prisma";
 import { PIPELINE } from "@/lib/setup/pipeline";
 import { RunStatusBadge } from "@/components/setup/status";
@@ -9,6 +10,7 @@ import { Plus, ChevronRight } from "lucide-react";
 const TOTAL = PIPELINE.length;
 
 export default async function SetupListPage() {
+  await requireOperatorPage();
   const clients = await prisma.switchboardClient.findMany({
     include: { run: { include: { steps: true } } },
     orderBy: { createdAt: "desc" },

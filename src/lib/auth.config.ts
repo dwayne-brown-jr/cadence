@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { isDemoEmail, demoMayRequest } from "@/lib/demo";
 
 export const authConfig: NextAuthConfig = {
   trustHost: true,
@@ -47,6 +48,17 @@ export const authConfig: NextAuthConfig = {
         "/api/cron",
         "/demo",
       ];
+      // The shared demo login is public, so it gets read-only access.
+      if (
+        isDemoEmail(auth?.user?.email) &&
+        !demoMayRequest(request.method, pathname, request.headers.has("next-action"))
+      ) {
+        return Response.json(
+          { error: "The demo is read-only. Sign up for free to try this." },
+          { status: 403 }
+        );
+      }
+
       const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
       if (isPublic) return true;
       return !!auth?.user;

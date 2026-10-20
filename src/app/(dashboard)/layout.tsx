@@ -10,6 +10,7 @@ import { DemoTour } from "@/components/demo-tour";
 import { OnboardingReminder } from "@/components/dashboard/onboarding-reminder";
 import { RealtimeProvider } from "@/components/dashboard/realtime-provider";
 import { prisma } from "@/lib/prisma";
+import { isOperator } from "@/lib/setup/operator";
 
 export default async function DashboardLayout({
   children,
@@ -38,6 +39,7 @@ export default async function DashboardLayout({
   const activeWsId = cookieStore.get("active_workspace")?.value;
   const member =
     memberships.find((m) => m.workspaceId === activeWsId) ?? memberships[0];
+  const showSetup = await isOperator(session.user.id, session.user.email);
   const allWorkspaces = memberships.map((m) => ({
     id: m.workspace.id,
     name: m.workspace.name,
@@ -48,7 +50,7 @@ export default async function DashboardLayout({
     <SidebarProvider>
       <RoleProvider role={member.role as Role}>
         <div className="flex h-screen overflow-hidden bg-background">
-          <Sidebar workspaceName={member.workspace.name} />
+          <Sidebar workspaceName={member.workspace.name} showSetup={showSetup} />
           <div className="flex flex-1 flex-col overflow-hidden min-w-0">
             <Header
               workspaceName={member.workspace.name}

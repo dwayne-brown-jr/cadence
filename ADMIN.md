@@ -2,7 +2,7 @@
 
 Internal client-provisioning engine that takes a Switchboard client from intake →
 live as a state machine. Lives alongside Cadence; the operator console is at
-**`/setup`** (auth-gated, any logged-in user is treated as the operator for now).
+**`/setup`** (only verified emails on `SWITCHBOARD_OPERATOR_EMAILS`; deny-by-default).
 
 > **Status: Phases 1–3 complete.** A run goes intake → live: the brain
 > (config → prompt → QA go/no-go), then the provisioning auto steps (voice agent,
@@ -129,8 +129,9 @@ provisioning preserved). Cleans up everything it creates.
   **config** (saving re-runs prompt + QA via idempotent downstream, provisioning
   preserved), the agent prompt, and a **48-hour watch** indicator once live. The view
   **polls live** while the engine is running or A2P is awaiting approval.
-- **Access:** set `SWITCHBOARD_OPERATOR_EMAILS` to restrict `/setup/**` and the
-  `/api/setup/**` routes to those emails (`requireOperator`). Unset = any logged-in user.
+- **Access:** deny-by-default. Only emails on `SWITCHBOARD_OPERATOR_EMAILS` whose
+  Cadence account has a verified email (`User.emailVerified`) can reach `/setup/**` and
+  `/api/setup/**` (`requireOperator` / `requireOperatorPage`). Unset = nobody.
 - **Notifications:** on a new **blocked** step (operator needed) or **go-live**, an
   email goes to the operator(s) via Resend (`src/lib/setup/notify.ts`). No-ops without
   recipients or `RESEND_API_KEY`. De-duped — a retry that re-blocks the same step

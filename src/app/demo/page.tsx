@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Building2, Loader2, Sparkles } from "lucide-react";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo";
 
 export default function DemoPage() {
   const router = useRouter();
@@ -14,8 +15,8 @@ export default function DemoPage() {
 
     async function loginAsDemo() {
       const result = await signIn("credentials", {
-        email: "alex@prestigerealty.com",
-        password: "password123",
+        email: DEMO_EMAIL,
+        password: DEMO_PASSWORD,
         redirect: false,
       });
 

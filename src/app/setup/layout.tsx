@@ -1,17 +1,13 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { isOperatorEmail } from "@/lib/setup/operator";
+import { requireOperatorPage } from "@/lib/setup/operator";
 import { Button } from "@/components/ui/button";
 import { Radio, Plus } from "lucide-react";
 
-// Operator console for the Switchboard setup engine. Auth is enforced by the
-// middleware (these routes aren't public); here we additionally narrow access to
-// the operator allowlist (SWITCHBOARD_OPERATOR_EMAILS) when one is configured.
+// Operator console for the Switchboard setup engine. Only verified emails on
+// SWITCHBOARD_OPERATOR_EMAILS get in. Each page re-checks too, because layouts
+// don't re-render on client-side navigation between child pages.
 export default async function SetupLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-  if (!isOperatorEmail(session.user.email)) redirect("/dashboard");
+  await requireOperatorPage();
 
   return (
     <div className="min-h-screen bg-muted/20">
