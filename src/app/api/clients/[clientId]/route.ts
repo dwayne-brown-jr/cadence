@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
-import { updateClientSchema } from "@/lib/validations";
+import { updateClientSchema, type UpdateClientInput } from "@/lib/validations";
 import { logAudit } from "@/lib/audit";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { allCustomFieldsInWorkspace, findPipelineInWorkspace, isWorkspaceMember, notFound } from "@/lib/tenant";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -68,20 +69,35 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  // stageId and skipDuplicateCheck aren't client columns; stage moves go through /move.
+  const data: UpdateClientInput = parsed.success ? parsed.data : {};
+  const { stageId: _stageId, skipDuplicateCheck: _skip, ...fields } = data;
+
+  if (fields.assignedToId && !(await isWorkspaceMember(fields.assignedToId, workspace.id))) {
+    return notFound("Assignee");
+  }
+  if (fields.pipelineId && !(await findPipelineInWorkspace(fields.pipelineId, workspace.id))) {
+    return notFound("Pipeline");
+  }
+  const hasCustomFields = customFields && typeof customFields === "object";
+  if (hasCustomFields && !(await allCustomFieldsInWorkspace(Object.keys(customFields), workspace.id))) {
+    return notFound("Custom field");
+  }
+
   // Update standard fields if provided
-  if (parsed.success && Object.keys(parsed.data).length > 0) {
+  if (Object.keys(fields).length > 0) {
     await prisma.client.update({
       where: { id: clientId },
       data: {
-        ...parsed.data,
-        email: parsed.data.email === "" ? null : parsed.data.email,
-        ...(parsed.data.phone !== undefined && { phone: parsed.data.phone ? encrypt(parsed.data.phone) : null }),
+        ...fields,
+        email: fields.email === "" ? null : fields.email,
+        ...(fields.phone !== undefined && { phone: fields.phone ? encrypt(fields.phone) : null }),
       },
     });
   }
 
   // Update custom field values if provided
-  if (customFields && typeof customFields === "object") {
+  if (hasCustomFields) {
     for (const [fieldId, value] of Object.entries(customFields as Record<string, string>)) {
       await prisma.customFieldValue.upsert({
         where: { customFieldId_clientId: { customFieldId: fieldId, clientId } },

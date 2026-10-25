@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requireRole } from "@/lib/api-helpers";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import {
   extractOnboardingAnswers,
@@ -65,6 +66,10 @@ export async function POST(req: NextRequest) {
   if (!member) {
     return NextResponse.json({ error: "No workspace found" }, { status: 404 });
   }
+
+  // Setup replaces the workspace's pipelines, templates and automations.
+  const roleError = requireRole(member, "ADMIN");
+  if (roleError) return roleError;
 
   if (member.workspace.onboardingCompleted) {
     return NextResponse.json(

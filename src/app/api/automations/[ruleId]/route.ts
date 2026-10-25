@@ -33,6 +33,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   const { triggerConfig, ...rest } = parsed.data;
 
+  if (rest.templateId) {
+    const template = await prisma.emailTemplate.findFirst({
+      where: { id: rest.templateId, workspaceId: workspace.id },
+      select: { id: true },
+    });
+    if (!template) return NextResponse.json({ error: "Template not found" }, { status: 404 });
+  }
+
   const rule = await prisma.automationRule.update({
     where: { id: ruleId },
     data: {

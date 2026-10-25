@@ -22,7 +22,13 @@ export const ourFileRouter = {
       const { workspace, error: wsError } = await requireWorkspace(userId);
       if (wsError) throw new Error("Workspace not found");
       const clientId = req.headers.get("x-client-id") ?? "";
-      return { userId, workspaceId: workspace.id, clientId };
+      const { prisma } = await import("./prisma");
+      const client = await prisma.client.findFirst({
+        where: { id: clientId, workspaceId: workspace.id },
+        select: { id: true },
+      });
+      if (!client) throw new Error("Client not found");
+      return { userId, workspaceId: workspace.id, clientId: client.id };
     })
     .onUploadComplete(async ({ metadata, file }) => {
       const { prisma } = await import("./prisma");

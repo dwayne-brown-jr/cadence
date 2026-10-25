@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
 import { sendEmail, applyMergeFields, generateTrackingId, type MergeFields } from "@/lib/email";
 import { z } from "zod";
+import { sanitizeEmailHtml } from "@/lib/sanitize-html";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest, { params }: Params) {
   };
 
   const finalSubject = applyMergeFields(subject, mergeFields);
-  const finalBody = applyMergeFields(htmlBody, mergeFields);
+  const finalBody = sanitizeEmailHtml(applyMergeFields(htmlBody, mergeFields, { html: true }));
 
   const trackingId = generateTrackingId();
 

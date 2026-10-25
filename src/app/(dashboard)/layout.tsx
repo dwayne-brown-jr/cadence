@@ -62,7 +62,7 @@ export default async function DashboardLayout({
             />
             <RealtimeProvider>
               <main className="flex-1 overflow-auto">
-                {!member.workspace.onboardingCompleted && <OnboardingReminder />}
+                {!member.workspace.onboardingCompleted && member.role !== "MEMBER" && <OnboardingReminder />}
                 {children}
               </main>
             </RealtimeProvider>

@@ -29,6 +29,11 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   if (parsed.data.action === "add") {
+    const tag = await prisma.tag.findFirst({
+      where: { id: parsed.data.tagId, workspaceId: workspace.id },
+      select: { id: true },
+    });
+    if (!tag) return NextResponse.json({ error: "Tag not found" }, { status: 404 });
     await prisma.clientTag.upsert({
       where: { clientId_tagId: { clientId, tagId: parsed.data.tagId } },
       update: {},

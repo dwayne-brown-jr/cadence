@@ -4,6 +4,20 @@ import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
 import { logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { z } from "zod";
+import { randomBytes } from "crypto";
+import { escapeHtml } from "@/lib/utils";
+
+const invitationPublicFields = {
+  id: true,
+  email: true,
+  role: true,
+  expiresAt: true,
+  acceptedAt: true,
+  createdAt: true,
+  workspaceId: true,
+  invitedById: true,
+  invitedBy: { select: { name: true, email: true } },
+} as const;
 
 const createSchema = z.object({
   email: z.string().email("Invalid email"),
@@ -16,12 +30,11 @@ export async function GET() {
   const { workspace, error: wsError } = await requireWorkspace(userId);
   if (wsError) return wsError;
 
+  // Never return the token: holding it is enough to accept the invite.
   const invitations = await prisma.invitation.findMany({
     where: { workspaceId: workspace.id, acceptedAt: null },
     orderBy: { createdAt: "desc" },
-    include: {
-      invitedBy: { select: { name: true, email: true } },
-    },
+    select: invitationPublicFields,
   });
 
   return NextResponse.json(invitations);
@@ -76,6 +89,7 @@ export async function POST(req: NextRequest) {
       expiresAt,
       workspaceId: workspace.id,
       invitedById: userId,
+      token: randomBytes(32).toString("base64url"),
     },
     include: { invitedBy: { select: { name: true, email: true } } },
   });
@@ -88,7 +102,7 @@ export async function POST(req: NextRequest) {
     html: `
       <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto;">
         <h2 style="color: #1E3A5F;">You're invited!</h2>
-        <p>${invitation.invitedBy.name ?? invitation.invitedBy.email} has invited you to join <strong>${workspace.name}</strong> on Cadence as a ${role.charAt(0) + role.slice(1).toLowerCase()}.</p>
+        <p>${escapeHtml(invitation.invitedBy.name ?? invitation.invitedBy.email)} has invited you to join <strong>${escapeHtml(workspace.name)}</strong> on Cadence as a ${role.charAt(0) + role.slice(1).toLowerCase()}.</p>
         <p style="margin: 24px 0;">
           <a href="${inviteUrl}" style="background:#1E3A5F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">
             Accept Invitation
@@ -107,5 +121,6 @@ export async function POST(req: NextRequest) {
     workspaceId: workspace.id,
   }).catch(console.error);
 
-  return NextResponse.json(invitation, { status: 201 });
+  const { token: _token, ...publicInvitation } = invitation;
+  return NextResponse.json(publicInvitation, { status: 201 });
 }

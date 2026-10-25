@@ -21,6 +21,12 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "stageId and checklistItemId required" }, { status: 400 });
   }
 
+  const stage = await prisma.stage.findFirst({
+    where: { id: stageId, pipeline: { workspaceId: workspace.id } },
+    select: { id: true },
+  });
+  if (!stage) return NextResponse.json({ error: "Stage not found" }, { status: 404 });
+
   if (completed) {
     await prisma.stageCompletion.upsert({
       where: {
