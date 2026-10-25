@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { findPipelineInWorkspace, findStageInWorkspace, notFound } from "@/lib/tenant";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
 import { importSchema, importClientSchema } from "@/lib/validations";
 
@@ -19,6 +20,14 @@ export async function POST(req: NextRequest) {
   }
 
   const { clients: rows, pipelineId, stageId } = parsed.data;
+
+  if (pipelineId && !(await findPipelineInWorkspace(pipelineId, workspace.id))) {
+    return notFound("Pipeline");
+  }
+  if (stageId) {
+    const stage = await findStageInWorkspace(stageId, workspace.id);
+    if (!stage || (pipelineId && stage.pipelineId !== pipelineId)) return notFound("Stage");
+  }
 
   // Resolve default pipeline and stage if not provided
   let resolvedPipelineId = pipelineId;

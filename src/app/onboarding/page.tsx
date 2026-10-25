@@ -16,8 +16,9 @@ export default async function OnboardingPage() {
   });
   if (!member) redirect("/signup");
 
-  // If already completed, no need to onboard again
-  if (member.workspace.onboardingCompleted) {
+  // If already completed, no need to onboard again. Only Owners and Admins
+  // run setup, because it replaces the workspace's pipelines.
+  if (member.workspace.onboardingCompleted || member.role === "MEMBER") {
     redirect("/dashboard");
   }
 

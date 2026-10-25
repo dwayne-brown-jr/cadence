@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { findStageInWorkspace, isWorkspaceMember, notFound } from "@/lib/tenant";
 import { requireAuth, requireWorkspace, requireRole } from "@/lib/api-helpers";
 import { bulkActionSchema } from "@/lib/validations";
 
@@ -39,9 +40,11 @@ export async function POST(req: NextRequest) {
       if (!data?.stageId) {
         return NextResponse.json({ error: "stageId is required" }, { status: 400 });
       }
+      const stage = await findStageInWorkspace(data.stageId, workspace.id);
+      if (!stage) return notFound("Stage");
       const result = await prisma.client.updateMany({
         where: { id: { in: clientIds } },
-        data: { currentStageId: data.stageId, stageEnteredAt: new Date() },
+        data: { currentStageId: stage.id, pipelineId: stage.pipelineId, stageEnteredAt: new Date() },
       });
       affected = result.count;
       break;
@@ -58,6 +61,9 @@ export async function POST(req: NextRequest) {
       break;
     }
     case "ASSIGN": {
+      if (data?.assignedToId && !(await isWorkspaceMember(data.assignedToId, workspace.id))) {
+        return notFound("Assignee");
+      }
       const result = await prisma.client.updateMany({
         where: { id: { in: clientIds } },
         data: { assignedToId: data?.assignedToId ?? null },

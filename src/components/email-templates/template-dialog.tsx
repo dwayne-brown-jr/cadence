@@ -75,7 +75,7 @@ export type TemplateRow = {
 
 function LivePreview({ subject, body }: { subject: string; body: string }) {
   const renderedSubject = applyMergeFields(subject, SAMPLE_MERGE_DATA);
-  const renderedBody = applyMergeFields(body, SAMPLE_MERGE_DATA);
+  const renderedBody = applyMergeFields(body, SAMPLE_MERGE_DATA, { html: true });
 
   return (
     <div className="flex flex-col h-full border rounded-md overflow-hidden bg-white">
@@ -86,9 +86,14 @@ function LivePreview({ subject, body }: { subject: string; body: string }) {
         <p className="text-[10px] text-muted-foreground">Subject</p>
         <p className="text-sm font-medium truncate">{renderedSubject || <span className="italic text-muted-foreground">No subject</span>}</p>
       </div>
-      <div
-        className="flex-1 overflow-y-auto px-4 py-3 text-sm"
-        dangerouslySetInnerHTML={{ __html: renderedBody || "<p class=\"text-gray-400 italic\">Body will appear here…</p>" }}
+      {/* Sandboxed (no allow-scripts): template HTML can never run code in the viewer's session. */}
+      <iframe
+        title="Email body preview"
+        sandbox=""
+        className="flex-1 w-full bg-white"
+        srcDoc={`<!doctype html><html><head><meta charset="utf-8"><style>body{margin:12px 16px;font-family:system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;color:#111;overflow-wrap:break-word}</style></head><body>${
+          renderedBody || '<p style="color:#9ca3af;font-style:italic">Body will appear here…</p>'
+        }</body></html>`}
       />
     </div>
   );

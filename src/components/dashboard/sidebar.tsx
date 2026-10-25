@@ -35,12 +35,15 @@ const navItems = [
 
 function SidebarContent({
   workspaceName,
+  showSetup,
   onNavClick,
 }: {
   workspaceName: string;
+  showSetup: boolean;
   onNavClick?: () => void;
 }) {
   const pathname = usePathname();
+  const items = showSetup ? navItems : navItems.filter((item) => item.href !== "/setup");
 
   return (
     <div className="flex h-full w-full flex-col bg-sidebar">
@@ -53,7 +56,7 @@ function SidebarContent({
         </span>
       </div>
       <nav className="flex-1 space-y-0.5 p-3 overflow-y-auto">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const isActive =
             pathname === item.href || pathname.startsWith(item.href + "/");
           return (
@@ -81,13 +84,19 @@ function SidebarContent({
   );
 }
 
-export function Sidebar({ workspaceName }: { workspaceName: string }) {
+export function Sidebar({
+  workspaceName,
+  showSetup = false,
+}: {
+  workspaceName: string;
+  showSetup?: boolean;
+}) {
   const { open, setOpen } = useSidebar();
 
   return (
     <>
       <aside className="hidden lg:flex h-full w-56 flex-col border-r border-sidebar-border shrink-0">
-        <SidebarContent workspaceName={workspaceName} />
+        <SidebarContent workspaceName={workspaceName} showSetup={showSetup} />
       </aside>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-56 p-0 bg-sidebar border-sidebar-border [&>button]:hidden">
@@ -99,7 +108,11 @@ export function Sidebar({ workspaceName }: { workspaceName: string }) {
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </button>
-          <SidebarContent workspaceName={workspaceName} onNavClick={() => setOpen(false)} />
+          <SidebarContent
+            workspaceName={workspaceName}
+            showSetup={showSetup}
+            onNavClick={() => setOpen(false)}
+          />
         </SheetContent>
       </Sheet>
     </>

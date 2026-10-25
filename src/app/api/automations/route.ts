@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { findStageInWorkspace, notFound } from "@/lib/tenant";
 import { requireAuth, requireWorkspace } from "@/lib/api-helpers";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
@@ -52,6 +53,10 @@ export async function POST(req: NextRequest) {
     if (!template) {
       return NextResponse.json({ error: "Template not found" }, { status: 404 });
     }
+  }
+
+  if (parsed.data.stageId && !(await findStageInWorkspace(parsed.data.stageId, workspace.id))) {
+    return notFound("Stage");
   }
 
   const rule = await prisma.automationRule.create({

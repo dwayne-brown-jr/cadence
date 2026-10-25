@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { applyMergeFields, sendEmail, generateTrackingId, MergeFields } from "@/lib/email";
 import { formatCurrency } from "@/lib/utils";
+import { sanitizeEmailHtml } from "@/lib/sanitize-html";
 import { generateWeeklySummaryEmail, type WorkspaceSummaryData } from "@/lib/ai-summary";
 
 type TriggerEvent =
@@ -92,7 +93,7 @@ export async function fireAutomations(
     };
 
     const subject = applyMergeFields(rule.template.subject, mergeFields);
-    const html = applyMergeFields(rule.template.body, mergeFields);
+    const html = sanitizeEmailHtml(applyMergeFields(rule.template.body, mergeFields, { html: true }));
 
     const trackingId = generateTrackingId();
 

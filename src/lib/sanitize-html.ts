@@ -1,36 +1,54 @@
+import sanitizeHtml from "sanitize-html";
+
 /**
  * Sanitize HTML for email templates.
- * Strips script tags, iframes, event handlers, and other dangerous content.
- * Allows safe HTML tags used in emails (p, br, a, strong, em, ul, ol, li, h1-h6, etc.)
+ * Allowlist-based: anything not listed here (scripts, iframes, svg, forms,
+ * event handlers, javascript: URLs) is removed. Covers the markup the rich
+ * text editor, starter templates and AI-generated templates produce.
  */
 export function sanitizeEmailHtml(html: string): string {
-  let clean = html;
-
-  // Remove script tags and their content
-  clean = clean.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-
-  // Remove iframe, object, embed, form, input tags
-  clean = clean.replace(/<\/?(?:iframe|object|embed|form|input|textarea|select|button)\b[^>]*>/gi, "");
-
-  // Remove event handlers (onclick, onload, onerror, etc.)
-  clean = clean.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
-
-  // Remove javascript: URLs
-  clean = clean.replace(/href\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, 'href="#"');
-  clean = clean.replace(/src\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, 'src=""');
-
-  // Remove data: URLs (except data:image for inline images)
-  clean = clean.replace(/(?:href|src)\s*=\s*"data:(?!image\/)[^"]*"/gi, 'href="#"');
-
-  // Remove style attributes that could contain expressions
-  clean = clean.replace(/style\s*=\s*"[^"]*expression\s*\([^"]*"/gi, "");
-  clean = clean.replace(/style\s*=\s*"[^"]*javascript:[^"]*"/gi, "");
-
-  // Remove base tags
-  clean = clean.replace(/<base\b[^>]*>/gi, "");
-
-  // Remove meta tags (except charset)
-  clean = clean.replace(/<meta\b(?![^>]*charset)[^>]*>/gi, "");
-
-  return clean.trim();
+  return sanitizeHtml(html, {
+    allowedTags: [
+      "p", "br", "hr", "div", "span", "a", "img",
+      "strong", "b", "em", "i", "u", "s", "small", "sub", "sup",
+      "h1", "h2", "h3", "h4", "h5", "h6",
+      "ul", "ol", "li", "blockquote", "pre", "code",
+      "table", "thead", "tbody", "tfoot", "tr", "th", "td",
+    ],
+    allowedAttributes: {
+      "*": ["style", "class", "align"],
+      a: ["href", "target", "rel", "title"],
+      img: ["src", "alt", "width", "height"],
+      table: ["width", "cellpadding", "cellspacing", "border", "role"],
+      td: ["width", "colspan", "rowspan", "valign"],
+      th: ["width", "colspan", "rowspan", "valign"],
+    },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    allowedSchemesByTag: { img: ["http", "https", "data"] },
+    allowProtocolRelative: false,
+    allowedStyles: {
+      "*": {
+        color: [/^#[0-9a-f]{3,8}$/i, /^rgba?\([\d\s,.%]+\)$/i, /^[a-z]+$/i],
+        "background-color": [/^#[0-9a-f]{3,8}$/i, /^rgba?\([\d\s,.%]+\)$/i, /^[a-z]+$/i],
+        "text-align": [/^(left|right|center|justify)$/],
+        "text-decoration": [/^[a-z\s-]+$/i],
+        "font-size": [/^\d+(\.\d+)?(px|em|rem|%)$/],
+        "font-weight": [/^(normal|bold|\d{3})$/],
+        "font-style": [/^(normal|italic)$/],
+        "font-family": [/^[\w\s,'"-]+$/],
+        "line-height": [/^\d+(\.\d+)?(px|em|rem|%)?$/],
+        padding: [/^[\d\s.]+(px|em|rem|%)?[\d\s.pxemr%]*$/],
+        margin: [/^[\d\s.]+(px|em|rem|%|auto)?[\d\s.pxemr%auto]*$/],
+        border: [/^[\w\s#().,%-]+$/],
+        "border-radius": [/^[\d\s.]+(px|em|rem|%)?[\d\s.pxemr%]*$/],
+        width: [/^\d+(\.\d+)?(px|em|rem|%)?$/],
+        "max-width": [/^\d+(\.\d+)?(px|em|rem|%)?$/],
+        display: [/^(block|inline|inline-block|none)$/],
+      },
+    },
+    transformTags: {
+      // Links opening in a new tab must not get a handle on the opener.
+      a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer" }),
+    },
+  }).trim();
 }

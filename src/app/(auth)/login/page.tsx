@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { loginSchema, type LoginInput } from "@/lib/validations";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/demo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -98,8 +99,9 @@ export default function LoginPage() {
         </p>
         <div className="mt-4 rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
           <p className="font-medium mb-1">Demo credentials:</p>
-          <p>Email: alex@prestigerealty.com</p>
-          <p>Password: password123</p>
+          <p>Email: {DEMO_EMAIL}</p>
+          <p>Password: {DEMO_PASSWORD}</p>
+          <p className="mt-1">The demo is read-only.</p>
         </div>
       </CardContent>
     </Card>

@@ -6,6 +6,7 @@ import { fireAutomations } from "@/lib/automation-engine";
 import { notifyWorkspaceMembers } from "@/lib/notifications";
 import { fireWebhooks } from "@/lib/webhooks";
 import { encrypt, decrypt } from "@/lib/encryption";
+import { findPipelineInWorkspace, findStageInWorkspace, isWorkspaceMember, notFound } from "@/lib/tenant";
 
 export async function GET(req: NextRequest) {
   const { session, userId, error } = await requireAuth();
@@ -78,17 +79,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  if (rest.assignedToId && !(await isWorkspaceMember(rest.assignedToId, workspace.id))) {
+    return notFound("Assignee");
+  }
+  if (pipelineId && !(await findPipelineInWorkspace(pipelineId, workspace.id))) {
+    return notFound("Pipeline");
+  }
+
   let currentStageId: string | undefined;
   let resolvedPipelineId = pipelineId;
 
   if (initialStageId) {
     // Caller specified an exact stage — find its pipeline
-    const stage = await prisma.stage.findUnique({
-      where: { id: initialStageId },
-      select: { id: true, pipelineId: true },
-    });
-    currentStageId = stage?.id;
-    resolvedPipelineId = stage?.pipelineId ?? pipelineId;
+    const stage = await findStageInWorkspace(initialStageId, workspace.id);
+    if (!stage) return notFound("Stage");
+    currentStageId = stage.id;
+    resolvedPipelineId = stage.pipelineId;
   } else if (pipelineId) {
     const firstStage = await prisma.stage.findFirst({
       where: { pipelineId },

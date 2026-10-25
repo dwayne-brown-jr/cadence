@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, AlertTriangle, ShieldCheck } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireOperatorPage } from "@/lib/setup/operator";
 import { PIPELINE, stepOrder, getStepDef } from "@/lib/setup/pipeline";
 import { StepStatusChip, RunStatusBadge, JsonBlock } from "@/components/setup/status";
 import {
@@ -42,6 +43,7 @@ function StepAction({
 }
 
 export default async function RunPage({ params }: { params: Promise<{ runId: string }> }) {
+  await requireOperatorPage();
   const { runId } = await params;
   const run = await prisma.onboardingRun.findUnique({
     where: { id: runId },

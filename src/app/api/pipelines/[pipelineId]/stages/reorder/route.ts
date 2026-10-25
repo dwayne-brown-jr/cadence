@@ -21,6 +21,12 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "stageIds must be an array" }, { status: 400 });
   }
 
+  // Only stages of this pipeline may be reordered.
+  const owned = await prisma.stage.count({ where: { id: { in: stageIds }, pipelineId } });
+  if (owned !== new Set(stageIds).size) {
+    return NextResponse.json({ error: "Stage not found" }, { status: 404 });
+  }
+
   await prisma.$transaction(
     stageIds.map((id: string, index: number) =>
       prisma.stage.update({ where: { id }, data: { order: index } })

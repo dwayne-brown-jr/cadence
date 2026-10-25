@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import crypto from "crypto";
+import { escapeHtml } from "@/lib/utils";
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -31,10 +32,18 @@ export const MERGE_FIELD_TOKENS: { token: string; label: string }[] = [
   { token: "{{days_in_stage}}", label: "Days in Current Stage" },
 ];
 
-export function applyMergeFields(template: string, fields: MergeFields): string {
+/**
+ * Fill {{tokens}} in a template. Pass `{ html: true }` for email bodies so
+ * values typed by clients (name, company...) can't inject markup.
+ */
+export function applyMergeFields(
+  template: string,
+  fields: MergeFields,
+  { html = false }: { html?: boolean } = {}
+): string {
   let result = template;
   for (const [key, value] of Object.entries(fields)) {
-    result = result.replaceAll(`{{${key}}}`, value ?? "");
+    result = result.replaceAll(`{{${key}}}`, html ? escapeHtml(value) : value ?? "");
   }
   return result;
 }

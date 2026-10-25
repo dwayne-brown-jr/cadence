@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
   const client = await prisma.client.findUnique({
     where: { portalToken: token },
-    select: { id: true, workspace: { select: { portalEnabled: true } } },
+    select: { id: true, workspaceId: true, workspace: { select: { portalEnabled: true } } },
   });
   if (!client || !client.workspace.portalEnabled) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -28,6 +28,12 @@ export async function POST(req: NextRequest, { params }: Params) {
   }
 
   const { checklistItemId, stageId, completed } = parsed.data;
+
+  const stage = await prisma.stage.findFirst({
+    where: { id: stageId, pipeline: { workspaceId: client.workspaceId } },
+    select: { id: true },
+  });
+  if (!stage) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   if (completed) {
     await prisma.stageCompletion.upsert({
